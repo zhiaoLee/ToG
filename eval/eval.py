@@ -9,6 +9,8 @@ if __name__ == '__main__':
                         default="ToG_cwq.json", help="the output file name.")
     parser.add_argument("--constraints_refuse", type=bool,
                         default=True, help="LLM may have refuse erorr, enable this option to skip current sample.")
+    parser.add_argument("--method", type=str,
+                        default="ToG", help="")
     args = parser.parse_args()
 
     ground_truth_datas, question_string, output_datas = prepare_dataset_for_eval(args.dataset, args.output_file)
@@ -17,7 +19,7 @@ if __name__ == '__main__':
     num_error = 0
     for data in output_datas:
         answers = align(args.dataset, question_string, data, ground_truth_datas)
-        results = data['results']
+        results = data['results']      ## 根据不同数据集、算法，此处有差异
         if check_string(results):
             response = clean_results(results)
             if response=="NULL":
@@ -39,5 +41,5 @@ if __name__ == '__main__':
     print("Exact Match: {}".format(float(num_right/len(output_datas))))
     print("right: {}, error: {}".format(num_right, num_error))
 
-    save_result2json(args.dataset, num_right, num_error, len(output_datas))
+    save_result2json(args.dataset, num_right, num_error, len(output_datas), args.method)
     

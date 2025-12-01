@@ -1,24 +1,33 @@
 from SPARQLWrapper import SPARQLWrapper, JSON
+# 引入本目录下的工具函数（LLM 调用、检索、数据处理等）
 from utils import *
 
-SPARQLPATH = "http://192.168.80.12:8890/sparql"  # depend on your own internal address and port, shown in Freebase folder's readme.md
+# Freebase triple store 暴露的 SPARQL 端点，需根据本地服务修改
+SPARQLPATH = "http://localhost:8890/sparql"  # depend on your own internal address and port, shown in Freebase folder's readme.md
 
-# pre-defined sparqls
+# 查询实体出边关系的模板
 sparql_head_relations = """\nPREFIX ns: <http://rdf.freebase.com/ns/>\nSELECT ?relation\nWHERE {\n  ns:%s ?relation ?x .\n}"""
+# 查询实体入边关系的模板
 sparql_tail_relations = """\nPREFIX ns: <http://rdf.freebase.com/ns/>\nSELECT ?relation\nWHERE {\n  ?x ?relation ns:%s .\n}"""
+# 以 head 为已知，查询 tail 实体的模板
 sparql_tail_entities_extract = """PREFIX ns: <http://rdf.freebase.com/ns/>\nSELECT ?tailEntity\nWHERE {\nns:%s ns:%s ?tailEntity .\n}""" 
+# 以 tail 为已知，查询 head 实体的模板
 sparql_head_entities_extract = """PREFIX ns: <http://rdf.freebase.com/ns/>\nSELECT ?tailEntity\nWHERE {\n?tailEntity ns:%s ns:%s  .\n}"""
+# 查询实体名称或 sameAs 标识的模板
 sparql_id = """PREFIX ns: <http://rdf.freebase.com/ns/>\nSELECT DISTINCT ?tailEntity\nWHERE {\n  {\n    ?entity ns:type.object.name ?tailEntity .\n    FILTER(?entity = ns:%s)\n  }\n  UNION\n  {\n    ?entity <http://www.w3.org/2002/07/owl#sameAs> ?tailEntity .\n    FILTER(?entity = ns:%s)\n  }\n}"""
     
+# 检测 relation 文本结尾是否为过于模板化的词，后续可用于过滤
 def check_end_word(s):
     words = [" ID", " code", " number", "instance of", "website", "URL", "inception", "image", " rate", " count"]
     return any(s.endswith(word) for word in words)
 
+# 丢弃 Freebase 中的内部类型或无语义关系，避免污染推理
 def abandon_rels(relation):
     if relation == "type.object.type" or relation == "type.object.name" or relation.startswith("common.") or relation.startswith("freebase.") or "sameAs" in relation:
         return True
 
 
+# 发送 SPARQL 请求并返回 bindings，所有查询均复用该方法
 def execurte_sparql(sparql_query):
     sparql = SPARQLWrapper(SPARQLPATH)
     sparql.setQuery(sparql_query)
@@ -27,13 +36,16 @@ def execurte_sparql(sparql_query):
     return results["results"]["bindings"]
 
 
+# 将关系 URI 去掉 Freebase 前缀，便于在 prompt 中呈现
 def replace_relation_prefix(relations):
     return [relation['relation']['value'].replace("http://rdf.freebase.com/ns/","") for relation in relations]
 
+# 将实体 URI 去掉 Freebase 前缀，仅保留 m.xxxxx 简写
 def replace_entities_prefix(entities):
     return [entity['tailEntity']['value'].replace("http://rdf.freebase.com/ns/","") for entity in entities]
 
 
+# 把实体 ID 映射成可读名称或 sameAs URI，若不存在则返回占位符
 def id2entity_name_or_type(entity_id):
     sparql_query = sparql_id % (entity_id, entity_id)
     sparql = SPARQLWrapper(SPARQLPATH)

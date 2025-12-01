@@ -25,7 +25,7 @@ if __name__ == '__main__':
     parser.add_argument("--LLM_type", type=str,
                         default="gpt-3.5-turbo", help="base LLM model.")
     parser.add_argument("--opeani_api_keys", type=str,
-                        default="", help="if the LLM_type is gpt-3.5-turbo or gpt-4, you need add your own openai api keys.")
+                        default="sk-zqatabasduftncuukvbrjgmkinkinxjzpagidisgjefsuzmf", help="if the LLM_type is gpt-3.5-turbo or gpt-4, you need add your own openai api keys.")
     parser.add_argument("--num_retain_entity", type=int,
                         default=5, help="Number of entities retained during entities search.")
     parser.add_argument("--prune_tools", type=str,
@@ -50,6 +50,8 @@ if __name__ == '__main__':
             i=0
             for entity in topic_entity:
                 if entity!="[FINISH_ID]":
+                    # 关系搜索并剪枝
+                    #
                     retrieve_relations_with_scores = relation_search_prune(entity, topic_entity[entity], pre_relations, pre_heads[i], question, args)  # best entity triplet, entitiy_id
                     current_entity_relations_list.extend(retrieve_relations_with_scores)
                 i+=1

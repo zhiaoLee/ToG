@@ -104,12 +104,22 @@ def clean_relations_bm25_sent(topn_relations, topn_scores, entity_id, head_relat
 
 
 def run_llm(prompt, temperature, max_tokens, opeani_api_keys, engine="gpt-3.5-turbo"):
-    if "llama" in engine.lower():
-        openai.api_key = "EMPTY"
-        openai.api_base = "http://localhost:8000/v1"  # your local llama server port
-        engine = openai.Model.list()["data"][0]["id"]
-    else:
-        openai.api_key = opeani_api_keys
+    # if "llama" in engine.lower():
+    #     openai.api_key = "EMPTY"
+    #     openai.api_base = "http://localhost:8000/v1"  # your local llama server port
+    #     engine = openai.Model.list()["data"][0]["id"]
+    # else:
+    #     openai.api_key = opeani_api_keys
+
+    ## siliconflow.
+    openai.api_key = "sk-zqatabasduftncuukvbrjgmkinkinxjzpagidisgjefsuzmf"
+    openai.api_base = "https://api.siliconflow.cn/v1"  # your local llama server port
+    engine = "Qwen/Qwen2.5-72B-Instruct"
+
+    ## openrouter
+    # openai.api_key = "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"
+    # openai.api_base = "https://openrouter.ai/api/v1"  # your local llama server port
+    # engine = "openai/gpt-3.5-turbo"
 
     messages = [{"role":"system","content":"You are an AI assistant that helps people find information."}]
     message_prompt = {"role":"user","content":prompt}
